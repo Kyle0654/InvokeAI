@@ -76,6 +76,7 @@ async function generateSubmit(form) {
     // Post as JSON, using Fetch streaming to get results
     fetch(form.action, {
         method: form.method,
+        headers: new Headers({'content-type': 'application/json'}),
         body: JSON.stringify(formData),
     }).then(async (response) => {
         const reader = response.body.getReader();
@@ -150,7 +151,7 @@ window.onload = () => {
     loadFields(document.querySelector("#generate-form"));
 
     document.querySelector('#cancel-button').addEventListener('click', () => {
-        fetch('/cancel').catch(e => {
+        fetch('/api/cancel').catch(e => {
             console.error(e);
         });
     });

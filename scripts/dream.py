@@ -10,6 +10,7 @@ import copy
 import warnings
 import time
 import ldm.dream.readline
+from ldm.dream.application import create_app
 from ldm.dream.pngwriter import PngWriter, PromptFormatter
 from ldm.dream.server import DreamServer, ThreadingDreamServer
 from ldm.dream.image_util import make_grid
@@ -102,6 +103,8 @@ def main():
     cmd_parser = create_cmd_parser()
     if opt.web:
         dream_server_loop(t2i, opt.host, opt.port)
+    elif opt.api:
+        flask_loop(t2i, opt.host, opt.port)
     else:
         main_loop(t2i, opt.outdir, opt.prompt_as_dir, cmd_parser, infile)
 
@@ -336,6 +339,27 @@ def dream_server_loop(t2i, host, port):
 
     dream_server.server_close()
 
+def flask_loop(t2i, host, port):
+    print('\n* --api was specified, starting api server...')
+    # Change working directory to the stable-diffusion directory
+    os.chdir(
+        os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    )
+
+    # Start server
+    flask = create_app(t2i)
+
+    print(">> Started Stable Diffusion api server!")
+    if host == '0.0.0.0':
+        print(f"Point your browser at http://localhost:{port} or use the host's DNS name or IP address.")
+    else:
+        print(">> Default host address now 127.0.0.1 (localhost). Use --host 0.0.0.0 to bind any address.")
+        print(f">> Point your browser at http://{host}:{port}.")
+
+    try:
+      flask.run(host, port)
+    except KeyboardInterrupt:
+      pass
 
 def write_log_message(results, log_path):
     """logs the name of the output image, prompt, and prompt args to the terminal and log file"""
@@ -462,16 +486,22 @@ def create_argv_parser():
         help='Start in web server mode.',
     )
     parser.add_argument(
+        '--api',
+        dest='api',
+        action='store_true',
+        help='Start in API server mode.',
+    )
+    parser.add_argument(
         '--host',
         type=str,
         default='127.0.0.1',
-        help='Web server: Host or IP to listen on. Set to 0.0.0.0 to accept traffic from other devices on your network.'
+        help='Web/API server: Host or IP to listen on. Set to 0.0.0.0 to accept traffic from other devices on your network.'
     )
     parser.add_argument(
         '--port',
         type=int,
         default='9090',
-        help='Web server: Port to listen on'
+        help='Web/API server: Port to listen on'
     )
     parser.add_argument(
         '--weights',
