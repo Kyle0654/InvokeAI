@@ -23,7 +23,34 @@ class Container(containers.DeclarativeContainer):
     device_type = config.model.device_type
   )
 
+  # TODO: get location from config
+  image_storage_service = providers.Singleton(
+    services.ImageStorageService,
+    './outputs/img-samples/'
+  )
+
+  # TODO: get location from config
+  image_intermediates_storage_service = providers.Singleton(
+    services.ImageStorageService,
+    './outputs/intermediates/'
+  )
+
+  queue_service = providers.Singleton(
+    services.JobQueueService
+  )
+
+  # TODO: get locations from config
+  log_service = providers.Singleton(
+    services.LogService,
+    './outputs/img-samples/',
+    'dream_web_log.txt'
+  )
+
   generator_service = providers.Singleton(
     services.GeneratorService,
-    model = model_singleton
+    model = model_singleton,
+    queue = queue_service,
+    imageStorage = image_storage_service,
+    intermediateStorage = image_intermediates_storage_service,
+    log = log_service
   )

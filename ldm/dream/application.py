@@ -5,12 +5,19 @@ import sys
 import time
 from flask import Flask
 from omegaconf import OmegaConf
+from dependency_injector.wiring import inject, Provide
 from ldm.dream.containers import Container, providers
 from ldm.dream import views
+from ldm.dream.services import GeneratorService
+
+@inject
+def initialize_app(generator_service: GeneratorService = Provide[Container.generator_service]) -> None:
+  ...
 
 def create_app(config) -> Flask:
   container = Container()
   container.config.from_dict(config)
+  container.wire(modules=[__name__])
 
   app = Flask(__name__, static_url_path='')
   app.container = container
@@ -22,9 +29,15 @@ def create_app(config) -> Flask:
   # API Routes
   app.add_url_rule('/api/', view_func=views.ApiIndex.as_view('api_index'))
   app.add_url_rule('/api/cancel', view_func=views.ApiCancel.as_view('api_cancel'))
-  app.add_url_rule('/api/images/<string:name>', view_func=views.ApiOutputs.as_view('api_image', 'img-samples'))
+
+  # TODO: Get storage root from config
+  app.add_url_rule('/api/images/<string:dreamId>', view_func=views.ApiImages.as_view('api_images', '../../'))
+  app.add_url_rule('/api/intermediates/<string:dreamId>/<string:step>', view_func=views.ApiIntermediates.as_view('api_intermediates', '../../'))
 
   app.static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../static/dream_web/')) 
+
+  # Initialize
+  initialize_app()
 
   return app
 

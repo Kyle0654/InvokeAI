@@ -1,21 +1,172 @@
+import base64
+import os
+from queue import Queue
+from threading import Thread
 import time
+from ldm.dream.models import DreamRequest
+from ldm.dream.pngwriter import PngWriter
+from ldm.dream.server import CanceledException
 from ldm.simplet2i import T2I
+
+class JobQueueService:
+  __queue: Queue = Queue()
+
+  def push(self, dreamRequest: DreamRequest):
+    self.__queue.put(dreamRequest)
+
+  def get(self, timeout: float = None) -> DreamRequest:
+    return self.__queue.get(timeout= timeout)
+
+# TODO: Name this better?
+class LogService:
+  __location: str
+  __logFile: str
+
+  def __init__(self, location:str, file:str):
+    self.__location = location
+    self.__logFile = file
+
+  def log(self, dreamRequest: DreamRequest):
+    with open(os.path.join(self.__location, self.__logFile), "a") as log:
+      log.write(f"{dreamRequest.id()}: {dreamRequest.to_json()}\n")
+
+
+class ImageStorageService:
+  __location: str
+  __pngwriter: PngWriter
+
+  def __init__(self, location):
+    self.__location = location
+    self.__pngWriter = PngWriter(self.__location)
+
+  def __getName(self, dreamId: str, postfix: str = '') -> str:
+    return f'{dreamId}{postfix}.png'
+
+  def save(self, image, dreamRequest, postfix: str = '', metadataPostfix: str = '') -> str:
+    name = self.__getName(dreamRequest.id(), postfix)
+    path = self.__pngWriter.save_image_and_prompt_to_png(image, f'{dreamRequest.prompt} -S{dreamRequest.seed}{metadataPostfix}', name)
+    return path
+
+  def path(self, dreamId: str, postfix: str = '') -> str:
+    name = self.__getName(dreamId, postfix)
+    path = os.path.join(self.__location, name)
+    return path
+
 
 class GeneratorService:
   __model: T2I
+  __queue: JobQueueService
+  __imageStorage: ImageStorageService
+  __intermediateStorage: ImageStorageService
+  __log: LogService
+  __thread: Thread
 
-  def __init__(self, model: T2I):
+  def __init__(self, model: T2I, queue: JobQueueService, imageStorage: ImageStorageService, intermediateStorage: ImageStorageService, log: LogService):
     self.__model = model
-    
+    self.__queue = queue
+    self.__imageStorage = imageStorage
+    self.__intermediateStorage = intermediateStorage
+    self.__log = log
+
+    # Create the background thread
+    self.__thread = Thread(target=self.__process)
+    self.__thread.daemon = True
+    self.__thread.start()
+
+  # TODO: Consider moving this to its own service if there's benefit in separating the generator
+  def __process(self):
     # preload the model
+    print('Preloading model')
+
     tic = time.time()
     self.__model.load_model()
     print(
       f'>> model loaded in', '%4.2fs' % (time.time() - tic)
     )
 
+    print('Started queue processor')
+    try:
+      while True:
+        dreamRequest = self.__queue.get()
+        self.__generate(dreamRequest)
+
+    except KeyboardInterrupt:
+        print('Queue processor stopped')
+
+
   def model(self):
     return self.__model
 
+
   def hello(self):
     return "hello world"
+
+
+  def __done(self, dreamRequest: DreamRequest, image, seed, upscaled=False):
+    self.__imageStorage.save(image, dreamRequest)
+    
+    # TODO: get api path from Flask
+    imgpath = f"/api/images/{dreamRequest.id()}"
+
+    # TODO: handle upscaling logic better (this is appending data to log, but only on first generation)
+    if not upscaled:
+      self.__log.log(dreamRequest)
+    
+    dreamRequest.image_callback(imgpath, dreamRequest, upscaled)
+
+
+  def __progress(self, dreamRequest, sample, step):
+    if dreamRequest.progress_images and step % 5 == 0 and step < dreamRequest.steps - 1:
+      image = self.__model._sample_to_image(sample)
+      self.__intermediateStorage.save(image, dreamRequest, f'.{step}', f' [intermediate]')
+      imgpath = f"/api/intermediates/{dreamRequest.id()}/{step}"
+
+      dreamRequest.progress_callback(step, imgpath)
+  
+
+  def __generate(self, dreamRequest: DreamRequest):
+    try:
+      initimgfile = None
+      if dreamRequest.initimg is not None:
+        with open("./img2img-tmp.png", "wb") as f:
+          initimg = dreamRequest.initimg.split(",")[1] # Ignore mime type
+          f.write(base64.b64decode(initimg))
+          initimgfile = "./img2img-tmp.png"
+
+      # Get a random seed if we don't have one yet
+      # TODO: handle "previous" seed usage?
+      if dreamRequest.seed == -1:
+        dreamRequest.seed = self.__model.seed
+
+      # Zero gfpgan strength if the model doesn't exist
+      # TODO: determine if this could be at the top now? Used to cause circular import
+      from ldm.gfpgan.gfpgan_tools import gfpgan_model_exists
+      if not gfpgan_model_exists:
+        dreamRequest.gfpgan_strength = 0
+
+      self.__model.prompt2image(
+        prompt          = dreamRequest.prompt,
+        init_img        = initimgfile,
+        strength        = None if initimgfile is None else dreamRequest.strength,
+        fit             = None if initimgfile is None else dreamRequest.fit,
+        iterations      = dreamRequest.iterations,
+        cfg_scale       = dreamRequest.cfgscale,
+        width           = dreamRequest.width,
+        height          = dreamRequest.height,
+        seed            = dreamRequest.seed,
+        steps           = dreamRequest.steps,
+        gfpgan_strength = dreamRequest.gfpgan_strength,
+        upscale         = dreamRequest.upscale,
+        sampler_name    = dreamRequest.sampler_name,
+        step_callback   = lambda sample, step: self.__progress(dreamRequest, sample, step),
+        image_callback  = lambda image, seed, upscaled=False: self.__done(dreamRequest, image, seed, upscaled))
+
+    except CanceledException:
+      dreamRequest.cancelled_callback()
+
+    finally:
+      dreamRequest.done_callback()
+      
+      # Remove the temp file
+      if (initimgfile is not None):
+        os.remove("./img2img-tmp.png")

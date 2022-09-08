@@ -187,3 +187,4 @@ checkpoints
 # Scratch folder
 .scratch/
 .vscode/
+gfpgan/
