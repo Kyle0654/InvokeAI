@@ -26,14 +26,14 @@ class LogService:
     self.__location = location
     self.__logFile = file
 
-  def log(self, dreamRequest: DreamRequest):
+  def log(self, dreamRequest: DreamRequest, seed = None):
     with open(os.path.join(self.__location, self.__logFile), "a") as log:
-      log.write(f"{dreamRequest.id()}: {dreamRequest.to_json()}\n")
+      log.write(f"{dreamRequest.id(seed)}: {dreamRequest.to_json(seed)}\n")
 
 
 class ImageStorageService:
   __location: str
-  __pngwriter: PngWriter
+  __pngWriter: PngWriter
 
   def __init__(self, location):
     self.__location = location
@@ -42,9 +42,9 @@ class ImageStorageService:
   def __getName(self, dreamId: str, postfix: str = '') -> str:
     return f'{dreamId}{postfix}.png'
 
-  def save(self, image, dreamRequest, postfix: str = '', metadataPostfix: str = '') -> str:
-    name = self.__getName(dreamRequest.id(), postfix)
-    path = self.__pngWriter.save_image_and_prompt_to_png(image, f'{dreamRequest.prompt} -S{dreamRequest.seed}{metadataPostfix}', name)
+  def save(self, image, dreamRequest, seed = None, postfix: str = '', metadataPostfix: str = '') -> str:
+    name = self.__getName(dreamRequest.id(seed), postfix)
+    path = self.__pngWriter.save_image_and_prompt_to_png(image, f'{dreamRequest.prompt} -S{seed or dreamRequest.seed}{metadataPostfix}', name)
     return path
 
   def path(self, dreamId: str, postfix: str = '') -> str:
@@ -103,14 +103,14 @@ class GeneratorService:
 
 
   def __done(self, dreamRequest: DreamRequest, image, seed, upscaled=False):
-    self.__imageStorage.save(image, dreamRequest)
+    self.__imageStorage.save(image, dreamRequest, seed)
     
     # TODO: get api path from Flask
-    imgpath = f"/api/images/{dreamRequest.id()}"
+    imgpath = f"/api/images/{dreamRequest.id(seed)}"
 
     # TODO: handle upscaling logic better (this is appending data to log, but only on first generation)
     if not upscaled:
-      self.__log.log(dreamRequest)
+      self.__log.log(dreamRequest, seed)
     
     dreamRequest.image_callback(imgpath, dreamRequest, upscaled)
 
@@ -119,8 +119,8 @@ class GeneratorService:
     imgpath = None
     if dreamRequest.progress_images and step % 5 == 0 and step < dreamRequest.steps - 1:
       image = self.__model._sample_to_image(sample)
-      self.__intermediateStorage.save(image, dreamRequest, f'.{step}', f' [intermediate]')
-      imgpath = f"/api/intermediates/{dreamRequest.id()}/{step}"
+      self.__intermediateStorage.save(image, dreamRequest, self.__model.seed, f'.{step}', f' [intermediate]')
+      imgpath = f"/api/intermediates/{dreamRequest.id(self.__model.seed)}/{step}"
     
     dreamRequest.progress_callback(step, imgpath)
   

@@ -28,21 +28,24 @@ class DreamRequest():
   cancelled_callback = None
   done_callback = None
 
-  def id(self) -> str:
-    return f"{self.time}.{self.seed}"
+  def id(self, seed = None) -> str:
+    return f"{self.time}.{seed or self.seed}"
 
   # TODO: handle this more cleanly
-  def data_without_image(self):
+  def data_without_image(self, seed = None):
     data = copy(self.__dict__)
     data['initimg'] = None
     data['progress_callback'] = None
     data['image_callback'] = None
     data['cancelled_callback'] = None
     data['done_callback'] = None
+    if seed:
+      data['seed'] = seed
+
     return data
 
-  def to_json(self):
-    return json.dumps(self.data_without_image())
+  def to_json(self, seed: int = None):
+    return json.dumps(self.data_without_image(seed))
 
   @staticmethod
   def from_json(j, newTime: bool = False):
