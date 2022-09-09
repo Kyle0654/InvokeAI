@@ -3,10 +3,10 @@ import os
 from queue import Queue
 from threading import Thread
 import time
-from ldm.dream.models import DreamRequest
 from ldm.dream.pngwriter import PngWriter
 from ldm.dream.server import CanceledException
 from ldm.simplet2i import T2I
+from server.models import DreamRequest
 
 class JobQueueService:
   __queue: Queue = Queue()

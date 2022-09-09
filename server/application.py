@@ -2,13 +2,12 @@
 import argparse
 import os
 import sys
-import time
 from flask import Flask
 from omegaconf import OmegaConf
 from dependency_injector.wiring import inject, Provide
-from ldm.dream.containers import Container, providers
-from ldm.dream import views
-from ldm.dream.services import GeneratorService
+from server import views
+from server.containers import Container
+from server.services import GeneratorService
 
 @inject
 def initialize_app(generator_service: GeneratorService = Provide[Container.generator_service]) -> None:
@@ -31,10 +30,10 @@ def create_app(config) -> Flask:
   app.add_url_rule('/api/cancel', view_func=views.ApiCancel.as_view('api_cancel'))
 
   # TODO: Get storage root from config
-  app.add_url_rule('/api/images/<string:dreamId>', view_func=views.ApiImages.as_view('api_images', '../../'))
-  app.add_url_rule('/api/intermediates/<string:dreamId>/<string:step>', view_func=views.ApiIntermediates.as_view('api_intermediates', '../../'))
+  app.add_url_rule('/api/images/<string:dreamId>', view_func=views.ApiImages.as_view('api_images', '../'))
+  app.add_url_rule('/api/intermediates/<string:dreamId>/<string:step>', view_func=views.ApiIntermediates.as_view('api_intermediates', '../'))
 
-  app.static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../static/dream_web/')) 
+  app.static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../static/dream_web/')) 
 
   # Initialize
   initialize_app()
@@ -99,7 +98,7 @@ def main():
   print('\n* starting api server...')
   # Change working directory to the stable-diffusion directory
   os.chdir(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
   )
 
   # Start server

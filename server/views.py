@@ -4,15 +4,11 @@ import os
 from queue import Queue
 from flask import current_app, jsonify, request, Response, send_from_directory, stream_with_context, url_for
 from flask.views import MethodView
-from numpy import empty
 from dependency_injector.wiring import inject, Provide
 
-from ldm.dream.models import DreamRequest
-from ldm.dream.pngwriter import PngWriter
-from ldm.dream.server import CanceledException
-from ldm.dream.services import GeneratorService, ImageStorageService, JobQueueService
-from ldm.dream.containers import Container
-from ldm.simplet2i import T2I
+from server.models import DreamRequest
+from server.services import GeneratorService, ImageStorageService, JobQueueService
+from server.containers import Container
 
 class WebIndex(MethodView):
   init_every_request = False
@@ -22,7 +18,7 @@ class WebIndex(MethodView):
 
   @inject
   def post(self, job_queue_service: JobQueueService = Provide[Container.queue_service]):
-    dreamRequest = DreamRequest.from_json(request.json)
+    dreamRequest = DreamRequest.from_json(request.json, newTime = True)
 
     #self.canceled.clear()
     print(f">> Request to generate with prompt: {dreamRequest.prompt}")

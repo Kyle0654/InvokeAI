@@ -20,7 +20,7 @@ class DreamRequest():
   upscale: None
   progress_images = None
   seed: int
-  time: int = int(datetime.now(timezone.utc).timestamp())
+  time: int
 
   # TODO: use signals/events for progress instead
   progress_callback = None
@@ -45,7 +45,7 @@ class DreamRequest():
     return json.dumps(self.data_without_image())
 
   @staticmethod
-  def from_json(j):
+  def from_json(j, newTime: bool = False):
     d = DreamRequest()
     d.prompt = j.get('prompt')
     d.initimg = j.get('initimg')
@@ -63,4 +63,5 @@ class DreamRequest():
     d.upscale = [int(d.upscale_level),float(d.upscale_strength)] if d.upscale_level != '' else None
     d.progress_images = 'progress_images' in j
     d.seed = int(j.get('seed'))
+    d.time = int(datetime.now(timezone.utc).timestamp()) if newTime else int(j.get('time'))
     return d

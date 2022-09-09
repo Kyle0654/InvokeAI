@@ -9,8 +9,7 @@ import sys
 import copy
 import warnings
 import time
-import ldm.dream.readline
-from ldm.dream.application import create_app
+from server.application import create_app
 from ldm.dream.pngwriter import PngWriter, PromptFormatter
 from ldm.dream.server import DreamServer, ThreadingDreamServer
 from ldm.dream.image_util import make_grid

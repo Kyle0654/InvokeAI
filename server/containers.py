@@ -1,11 +1,11 @@
 """Containers module."""
 
 from dependency_injector import containers, providers
-from ldm.dream import services
 from ldm.simplet2i import T2I
+from server import services
 
 class Container(containers.DeclarativeContainer):
-  wiring_config = containers.WiringConfiguration(modules=["ldm.dream.views"])
+  wiring_config = containers.WiringConfiguration(packages=['server'])
 
   config = providers.Configuration()
 
