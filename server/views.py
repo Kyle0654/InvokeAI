@@ -62,14 +62,14 @@ class WebIndex(MethodView):
                 })
 
     def image_progress(step, imgpath):
-        # if self.canceled.is_set(): # TODO: Handle cancellation
-        #     self.wfile.write(bytes(json.dumps({'event':'canceled'}) + '\n', 'utf-8'))
-        #     raise CanceledException
+      # if self.canceled.is_set(): # TODO: Handle cancellation
+      #     self.wfile.write(bytes(json.dumps({'event':'canceled'}) + '\n', 'utf-8'))
+      #     raise CanceledException
 
-        q.put({
-          'type': 'progress',
-          'data': {'event': 'step', 'step': step + 1, 'url': imgpath}
-        })
+      q.put({
+        'type': 'progress',
+        'data': {'event': 'step', 'step': step + 1, 'url': imgpath}
+      })
 
     def image_canceled():
       q.put({
