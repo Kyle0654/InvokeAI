@@ -60,6 +60,7 @@ class GeneratorService:
   __intermediateStorage: ImageStorageService
   __log: LogService
   __thread: Thread
+  __cancellationRequested: bool = False
 
   def __init__(self, model: T2I, queue: JobQueueService, imageStorage: ImageStorageService, intermediateStorage: ImageStorageService, log: LogService):
     self.__model = model
@@ -72,6 +73,12 @@ class GeneratorService:
     self.__thread = Thread(target=self.__process)
     self.__thread.daemon = True
     self.__thread.start()
+
+
+  # Request cancellation of the current job
+  def cancel(self):
+    self.__cancellationRequested = True
+
 
   # TODO: Consider moving this to its own service if there's benefit in separating the generator
   def __process(self):
@@ -108,6 +115,10 @@ class GeneratorService:
 
 
   def __progress(self, dreamRequest, sample, step):
+    if self.__cancellationRequested:
+      self.__cancellationRequested = False
+      raise CanceledException
+
     imgpath = None
     if dreamRequest.progress_images and step % 5 == 0 and step < dreamRequest.steps - 1:
       image = self.__model._sample_to_image(sample)

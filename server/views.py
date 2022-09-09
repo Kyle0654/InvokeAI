@@ -73,8 +73,8 @@ class WebIndex(MethodView):
 
     def image_canceled():
       q.put({
-        'type': 'cancelled',
-        'data': {}
+        'type': 'canceled',
+        'data': {'event': 'canceled' }
       })
 
     def done():
@@ -124,9 +124,10 @@ class WebConfig(MethodView):
 class ApiCancel(MethodView):
   init_every_request = False
   
-  def get(self):
-    # self.canceled.set()
-    return jsonify({})
+  @inject
+  def get(self, generator_service: GeneratorService = Provide[Container.generator_service]):
+    generator_service.cancel()
+    return Response(status=204)
 
 
 class ApiImages(MethodView):
