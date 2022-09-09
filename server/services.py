@@ -94,14 +94,6 @@ class GeneratorService:
         print('Queue processor stopped')
 
 
-  def model(self):
-    return self.__model
-
-
-  def hello(self):
-    return "hello world"
-
-
   def __done(self, dreamRequest: DreamRequest, image, seed, upscaled=False):
     self.__imageStorage.save(image, dreamRequest, seed, upscaled)
     

@@ -27,7 +27,6 @@ def create_app(config) -> Flask:
   app.add_url_rule('/config.js', view_func=views.WebConfig.as_view('web_config'))
 
   # API Routes
-  app.add_url_rule('/api/', view_func=views.ApiIndex.as_view('api_index'))
   app.add_url_rule('/api/cancel', view_func=views.ApiCancel.as_view('api_cancel'))
 
   # TODO: Get storage root from config

@@ -120,17 +120,6 @@ class WebConfig(MethodView):
     js = f"let config = {json.dumps(config)};\n"
     return Response(js, mimetype="application/javascript")
 
-class ApiIndex(MethodView):
-  init_every_request = False
-  generator_service = None
-
-  @inject
-  def __init__(self, generator_service: GeneratorService = Provide[Container.generator_service]):
-    self.generator_service = generator_service
-
-  @inject
-  def get(self):
-    return jsonify({ "result": self.generator_service.hello() })
 
 class ApiCancel(MethodView):
   init_every_request = False
@@ -138,6 +127,7 @@ class ApiCancel(MethodView):
   def get(self):
     # self.canceled.set()
     return jsonify({})
+
 
 class ApiImages(MethodView):
   init_every_request = False
