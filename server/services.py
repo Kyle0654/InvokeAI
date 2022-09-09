@@ -116,11 +116,12 @@ class GeneratorService:
 
 
   def __progress(self, dreamRequest, sample, step):
+    imgpath = None
     if dreamRequest.progress_images and step % 5 == 0 and step < dreamRequest.steps - 1:
       image = self.__model._sample_to_image(sample)
       self.__intermediateStorage.save(image, dreamRequest, f'.{step}', f' [intermediate]')
-
-    imgpath = f"/api/intermediates/{dreamRequest.id()}/{step}"
+      imgpath = f"/api/intermediates/{dreamRequest.id()}/{step}"
+    
     dreamRequest.progress_callback(step, imgpath)
   
 
