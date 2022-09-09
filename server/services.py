@@ -26,9 +26,9 @@ class LogService:
     self.__location = location
     self.__logFile = file
 
-  def log(self, dreamRequest: DreamRequest, seed = None):
+  def log(self, dreamRequest: DreamRequest, seed = None, upscaled = False):
     with open(os.path.join(self.__location, self.__logFile), "a") as log:
-      log.write(f"{dreamRequest.id(seed)}: {dreamRequest.to_json(seed)}\n")
+      log.write(f"{dreamRequest.id(seed, upscaled)}: {dreamRequest.to_json(seed)}\n")
 
 
 class ImageStorageService:
@@ -42,8 +42,8 @@ class ImageStorageService:
   def __getName(self, dreamId: str, postfix: str = '') -> str:
     return f'{dreamId}{postfix}.png'
 
-  def save(self, image, dreamRequest, seed = None, postfix: str = '', metadataPostfix: str = '') -> str:
-    name = self.__getName(dreamRequest.id(seed), postfix)
+  def save(self, image, dreamRequest, seed = None, upscaled = False, postfix: str = '', metadataPostfix: str = '') -> str:
+    name = self.__getName(dreamRequest.id(seed, upscaled), postfix)
     path = self.__pngWriter.save_image_and_prompt_to_png(image, f'{dreamRequest.prompt} -S{seed or dreamRequest.seed}{metadataPostfix}', name)
     return path
 
@@ -103,14 +103,14 @@ class GeneratorService:
 
 
   def __done(self, dreamRequest: DreamRequest, image, seed, upscaled=False):
-    self.__imageStorage.save(image, dreamRequest, seed)
+    self.__imageStorage.save(image, dreamRequest, seed, upscaled)
     
     # TODO: get api path from Flask
-    imgpath = f"/api/images/{dreamRequest.id(seed)}"
+    imgpath = f"/api/images/{dreamRequest.id(seed, upscaled)}"
 
     # TODO: handle upscaling logic better (this is appending data to log, but only on first generation)
     if not upscaled:
-      self.__log.log(dreamRequest, seed)
+      self.__log.log(dreamRequest, seed, upscaled)
     
     dreamRequest.image_callback(imgpath, dreamRequest, upscaled)
 

@@ -28,8 +28,8 @@ class DreamRequest():
   cancelled_callback = None
   done_callback = None
 
-  def id(self, seed = None) -> str:
-    return f"{self.time}.{seed or self.seed}"
+  def id(self, seed = None, upscaled = False) -> str:
+    return f"{self.time}.{seed or self.seed}{'.u' if upscaled else ''}"
 
   # TODO: handle this more cleanly
   def data_without_image(self, seed = None):
