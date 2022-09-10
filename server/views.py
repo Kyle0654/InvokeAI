@@ -32,10 +32,10 @@ class WebIndex(MethodView):
     # the images are first generated, and then again when after upscaling
     # is complete. The upscaling replaces the original file, so the second
     # entry should not be inserted into the image list.
-    def image_done(imgpath, dreamRequest, upscaled=False):
+    def image_done(imgpath, dreamRequest, seed, upscaled=False):
         q.put({
           'type': 'result',
-          'data': {'event': 'result', 'url': imgpath, 'seed': dreamRequest.seed, 'config': dreamRequest.data_without_image()}
+          'data': {'event': 'result', 'url': imgpath, 'seed': seed or dreamRequest.seed, 'config': dreamRequest.data_without_image(seed)}
         })
 
         # TODO: handle eventing around upscale differently

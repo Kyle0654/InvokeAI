@@ -111,7 +111,7 @@ class GeneratorService:
     if not upscaled:
       self.__log.log(dreamRequest, seed, upscaled)
     
-    dreamRequest.image_callback(imgpath, dreamRequest, upscaled)
+    dreamRequest.image_callback(imgpath, dreamRequest, seed, upscaled)
 
 
   def __progress(self, dreamRequest, sample, step):
