@@ -193,6 +193,7 @@ const InpaintingCanvas = () => {
 
   const handleMouseOutCanvas = () => {
     setCursorPos(null);
+    isDrawing.current = false
   };
 
   // Triggers canvas redraw when mask is "empty" i.e. no lines to draw
