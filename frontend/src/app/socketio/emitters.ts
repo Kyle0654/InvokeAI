@@ -8,6 +8,7 @@ import {
 } from '../../features/system/systemSlice';
 import { tabMap, tab_dict } from '../../features/tabs/InvokeTabs';
 import * as InvokeAI from '../invokeai';
+import { GenerateImageProps } from './actions';
 
 /**
  * Returns an object containing all functions which use `socketio.emit()`.
@@ -21,7 +22,9 @@ const makeSocketIOEmitters = (
   const { dispatch, getState } = store;
 
   return {
-    emitGenerateImage: () => {
+    emitGenerateImage: (args: GenerateImageProps | undefined) => {
+      const inpaintingMask = args?.inpaintingMask;
+
       dispatch(setIsProcessing(true));
 
       const options = { ...getState().options };
@@ -29,9 +32,18 @@ const makeSocketIOEmitters = (
       if (tabMap[options.activeTab] !== 'img2img') {
         options.shouldUseInitImage = false;
       }
+      const {
+        currentImage: { url: currentImageUrl },
+      } = getState().gallery;
 
       const { generationParameters, esrganParameters, facetoolParameters } =
-        frontendToBackendParameters(options, getState().system);
+        frontendToBackendParameters(
+          options,
+          getState().system,
+          tabMap[options.activeTab] as keyof typeof tab_dict,
+          inpaintingMask,
+          currentImageUrl
+        );
 
       socketio.emit(
         'generateImage',
@@ -39,6 +51,14 @@ const makeSocketIOEmitters = (
         esrganParameters,
         facetoolParameters
       );
+
+      // we need to truncate the init_mask base64 else it takes up the whole log
+      // TODO: handle maintaining masks for reproducibility in future
+      if (generationParameters.init_mask) {
+        generationParameters.init_mask = generationParameters.init_mask
+          .substr(0, 20)
+          .concat('...');
+      }
 
       dispatch(
         addLogEntry({

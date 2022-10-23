@@ -8,7 +8,11 @@ import * as InvokeAI from '../invokeai';
  * by the middleware.
  */
 
-export const generateImage = createAction<undefined>('socketio/generateImage');
+export type GenerateImageProps = { inpaintingMask: string };
+
+export const generateImage = createAction<GenerateImageProps | undefined>(
+  'socketio/generateImage'
+);
 export const runESRGAN = createAction<InvokeAI.Image>('socketio/runESRGAN');
 export const runFacetool = createAction<InvokeAI.Image>('socketio/runFacetool');
 export const deleteImage = createAction<InvokeAI.Image>('socketio/deleteImage');

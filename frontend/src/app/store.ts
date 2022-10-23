@@ -7,6 +7,7 @@ import storage from 'redux-persist/lib/storage'; // defaults to localStorage for
 
 import optionsReducer from '../features/options/optionsSlice';
 import galleryReducer from '../features/gallery/gallerySlice';
+import inpaintingReducer from '../features/tabs/Inpainting/inpaintingSlice';
 
 import systemReducer from '../features/system/systemSlice';
 import { socketioMiddleware } from './socketio/middleware';
@@ -56,6 +57,7 @@ const systemPersistConfig = {
 const reducers = combineReducers({
   options: optionsReducer,
   gallery: galleryReducer,
+  inpainting: inpaintingReducer,
   system: persistReducer(systemPersistConfig, systemReducer),
 });
 
